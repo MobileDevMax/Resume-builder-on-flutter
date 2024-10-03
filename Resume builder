@@ -1,0 +1,126 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart'; 
+
+void main() {
+  runApp(ResumeBuilderApp());
+}
+
+class ResumeBuilderApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Resume Builder',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: ResumeForm(),
+    );
+  }
+}
+
+class ResumeForm extends StatefulWidget {
+  @override
+  _ResumeFormState createState() => _ResumeFormState();
+}
+
+class _ResumeFormState extends State<ResumeForm> {
+  final List<String> _sections = [
+    'About Me',
+    'Work Experience',
+    'Projects',
+    'Skills',
+    'Hobby'
+  ];
+
+  final List<bool> _selectedSections = List.filled(5, false);
+  final Map<String, String> _formData = {
+    'About Me': '',
+    'Work Experience': '',
+    'Projects': '',
+    'Skills': '',
+    'Hobby': '',
+  };
+
+  void _toggleSection(int index) {
+    setState(() {
+      _selectedSections[index] = !_selectedSections[index];
+    });
+  }
+
+  Future<void> _saveData() async {
+    String resume = '';
+    _sections.asMap().forEach((index, section) {
+      if (_selectedSections[index]) {
+        resume += '$section: ${_formData[section]}\n\n';
+      }
+    });
+
+    if (resume.isNotEmpty) {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/resume.txt');
+      await file.writeAsString(resume);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Resume saved to ${file.path}')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No data to save')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Resume Builder'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text('Choose the sections you want in your resume:', style: TextStyle(fontSize: 18)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _sections.length,
+                itemBuilder: (context, index) {
+                  return CheckboxListTile(
+                    title: Text(_sections[index]),
+                    value: _selectedSections[index],
+                    onChanged: (bool? value) {
+                      _toggleSection(index);
+                    },
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _sections.length,
+                itemBuilder: (context, index) {
+                  return _selectedSections[index]
+                      ? TextField(
+                          decoration: InputDecoration(labelText: _sections[index]),
+                          onChanged: (value) {
+                            _formData[_sections[index]] = value;
+                          },
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^[a-zA-Z\s]*')), 
+                          ],
+                        )
+                      : Container();
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _saveData,
+              child: Text('Save Resume'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
